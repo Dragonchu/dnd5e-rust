@@ -23,8 +23,14 @@ fn main() {
         1,
     );
     let mut bo: Character = po.into();
-    let strength = bo.abilities.get("strength").unwrap();
+    let strength = bo.abilities.get_mut("strength").unwrap();
+    strength.register_observer(1, observer);
     println!("strength: {:?}", strength.value);
+    strength.notify_observers();
     let po_aft: CharacterDTO = bo.into();
     println!("{:?}", po_aft);
+}
+
+fn observer(value: &u8) {
+    println!("I got it: {:?}", value);
 }

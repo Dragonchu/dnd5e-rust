@@ -5,7 +5,7 @@ use uuid::Uuid;
 pub struct Attribute<T> {
     pub id: u8,
     pub value: T,
-    pub observers: HashMap<u8, Box<dyn Observer<T>>>,
+    pub observers: HashMap<u8, fn(value: &T)>,
     pub modifiers: HashMap<u8, Box<dyn Modifier<T>>>,
 }
 
@@ -27,9 +27,8 @@ impl<T> Entity for Attribute<T> {
 }
 
 impl<T> Subject<T> for Attribute<T> {
-    fn register_observer(&mut self, observer: Box<dyn Observer<T>>) {
-        self.observers
-            .insert(observer.get_id().to_owned(), observer);
+    fn register_observer(&mut self, id: u8, observer: fn(value: &T)) {
+        self.observers.insert(id.to_owned(), observer);
     }
 
     fn remove_observer(&mut self, observer: Box<dyn Observer<T>>) {
@@ -38,7 +37,7 @@ impl<T> Subject<T> for Attribute<T> {
 
     fn notify_observers(&self) {
         for observer in self.observers.values() {
-            observer.on_notify(&self.get_value());
+            observer(&self.get_value());
         }
     }
 
@@ -62,7 +61,7 @@ pub trait Observer<T>: Entity {
 }
 
 pub trait Subject<T>: Entity {
-    fn register_observer(&mut self, observer: Box<dyn Observer<T>>);
+    fn register_observer(&mut self, id: u8, observer: fn(value: &T));
     fn remove_observer(&mut self, observer: Box<dyn Observer<T>>);
     fn notify_observers(&self);
     fn get_value(&self) -> &T;
