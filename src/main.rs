@@ -1,10 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use crate::{
-    bo::Character,
-    dto::CharacterDTO,
-    engine::{Attribute, Subject},
-};
+use crate::{bo::Character, dto::CharacterDTO, engine::Subject};
 
 pub mod bo;
 pub mod dto;
