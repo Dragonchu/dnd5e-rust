@@ -53,7 +53,7 @@ impl From<Character> for CharacterDTO {
             abilities: convert(&value.abilities),
             skills: convert(&value.skills),
             immunities: value.immunities.get_value().clone(),
-            class: value.class,
+            class: value.class as u8,
         }
     }
 }

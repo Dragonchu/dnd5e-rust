@@ -6,6 +6,21 @@ use uuid::Uuid;
 
 use crate::dto::CharacterDTO;
 
+pub enum Class {
+    Barbarian = 1,
+}
+
+impl TryFrom<u8> for Class {
+    type Error = &'static str;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Class::Barbarian),
+            _ => Err("Invalid integer value for class"),
+        }
+    }
+}
+
 pub struct Character {
     pub id: String,
     pub name: String,
@@ -16,13 +31,13 @@ pub struct Character {
     pub abilities: HashMap<String, Attribute<u8>>,
     pub skills: HashMap<String, Attribute<u8>>,
     pub immunities: Attribute<Vec<String>>,
-    pub class: u8,
+    pub class: Class,
 }
 
 impl From<CharacterDTO> for Character {
     fn from(value: CharacterDTO) -> Self {
         let uuid = Uuid::new_v4();
-        Self {
+        let mut character = Character {
             id: uuid.to_string(),
             name: value.name,
             level: value.level,
@@ -32,7 +47,9 @@ impl From<CharacterDTO> for Character {
             abilities: restore(&value.abilities),
             skills: restore(&value.skills),
             immunities: Attribute::new(value.immunities),
-            class: value.class,
-        }
+            class: value.class.try_into().unwrap(),
+        };
+
+        character
     }
 }
