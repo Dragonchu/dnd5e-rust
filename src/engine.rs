@@ -1,15 +1,19 @@
 use std::collections::HashMap;
 
-use uuid::Uuid;
-
-pub struct Attribute<T> {
+pub struct Attribute<T>
+where
+    T: Clone,
+{
     pub id: u8,
     pub value: T,
     pub observers: HashMap<u8, fn(value: &T)>,
-    pub modifiers: HashMap<u8, Box<dyn Modifier<T>>>,
+    pub modifiers: HashMap<u8, Modifier<T>>,
 }
 
-impl<T> Attribute<T> {
+impl<T> Attribute<T>
+where
+    T: Clone,
+{
     pub fn new(value: T) -> Self {
         Self {
             id: 1,
@@ -20,19 +24,39 @@ impl<T> Attribute<T> {
     }
 }
 
-impl<T> Entity for Attribute<T> {
+impl<T> Entity for Attribute<T>
+where
+    T: Clone,
+{
     fn get_id(&self) -> &u8 {
         &self.id
     }
 }
 
-impl<T> Subject<T> for Attribute<T> {
+impl<T> Subject<T> for Attribute<T>
+where
+    T: Clone,
+{
     fn register_observer(&mut self, id: u8, observer: fn(value: &T)) {
         self.observers.insert(id.to_owned(), observer);
     }
 
-    fn remove_observer(&mut self, observer: Box<dyn Observer<T>>) {
-        self.observers.remove(&observer.get_id());
+    fn register_modifier(&mut self, id: u8, priority: u8, modifier: fn(value: &T) -> T) {
+        self.modifiers.insert(
+            id.to_owned(),
+            Modifier {
+                priority,
+                calculate: modifier,
+            },
+        );
+    }
+
+    fn remove_observer(&mut self, id: u8) {
+        self.observers.remove(&id);
+    }
+
+    fn remove_modifier(&mut self, id: u8) {
+        self.modifiers.remove(&id);
     }
 
     fn notify_observers(&self) {
@@ -41,12 +65,12 @@ impl<T> Subject<T> for Attribute<T> {
         }
     }
 
-    fn get_value(&self) -> &T {
+    fn get_value(&self) -> T {
         let mut modifiers: Vec<_> = self.modifiers.values().collect();
-        modifiers.sort_by(|a, b| a.get_priority().cmp(&b.get_priority()));
-        let mut final_value: &T = &self.value;
+        modifiers.sort_by(|a, b| a.priority.cmp(&b.priority));
+        let mut final_value: T = self.value.clone();
         for modifier in modifiers.iter() {
-            final_value = modifier.calculate(final_value);
+            final_value = (modifier.calculate)(&final_value);
         }
         final_value
     }
@@ -56,20 +80,28 @@ pub trait Entity {
     fn get_id(&self) -> &u8;
 }
 
-pub trait Observer<T>: Entity {
+pub trait Observer<T>: Entity
+where
+    T: Clone,
+{
     fn on_notify(&self, value: &T);
 }
 
-pub trait Subject<T>: Entity {
+pub trait Subject<T>: Entity
+where
+    T: Clone,
+{
     fn register_observer(&mut self, id: u8, observer: fn(value: &T));
-    fn remove_observer(&mut self, observer: Box<dyn Observer<T>>);
+    fn register_modifier(&mut self, id: u8, priority: u8, modifier: fn(value: &T) -> T);
+    fn remove_observer(&mut self, id: u8);
+    fn remove_modifier(&mut self, id: u8);
     fn notify_observers(&self);
-    fn get_value(&self) -> &T;
+    fn get_value(&self) -> T;
 }
 
-pub trait Modifier<T> {
-    fn get_priority(&self) -> u8;
-    fn calculate(&self, value: &T) -> &T;
+pub struct Modifier<T> {
+    pub priority: u8,
+    pub calculate: fn(value: &T) -> T,
 }
 
 pub mod util {

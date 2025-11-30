@@ -25,6 +25,7 @@ fn main() {
     let mut bo: Character = po.into();
     let strength = bo.abilities.get_mut("strength").unwrap();
     strength.register_observer(1, observer);
+    strength.register_modifier(1, 1, |value| value + 1);
     println!("strength: {:?}", strength.value);
     strength.notify_observers();
     let po_aft: CharacterDTO = bo.into();
